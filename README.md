@@ -36,15 +36,12 @@ You can run the project in **two ways**, depending on your preference.
 If you prefer an interactive environment:
 
 1. Download or open `GossipLearning.ipynb`
-2. Launch Jupyter Notebook: Open GossipLearning.ipynb and run the cells sequentially
+2. Launch Jupyter Notebook: Run the cells sequentially
 
 This option is useful for:
-
-Step-by-step understanding of gossip learning
-
-Debugging and visualization
-
-Interactive analysis of results
+1. Step-by-step understanding of gossip learning
+2. Debugging and visualization
+3. Interactive analysis of results
    
 
 
