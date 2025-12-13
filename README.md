@@ -54,3 +54,18 @@ Install dependencies:
 pip install requirements.txt
 ```
 
+Run the experiment script:
+```bash
+python main.py
+```
+or
+```bash
+python src/run_experiments.py
+```
+depending on your setup
+
+This will:
+1. Generate network topologies
+2. Train gossip learning models
+3. Save experimental results to CSV files
+4. Enable large-scale and repeatable experiments
