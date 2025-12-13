@@ -43,5 +43,14 @@ This option is useful for:
 2. Debugging and visualization
 3. Interactive analysis of results
    
+---
 
+### Option 2: Run with Python Scripts (Recommended for Full Experiments)
+
+To run the full experimental pipeline:
+
+Install dependencies:
+```bash
+pip install requirements.txt
+```
 
