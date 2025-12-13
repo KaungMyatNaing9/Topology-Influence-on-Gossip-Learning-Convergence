@@ -78,3 +78,28 @@ This will:
 Experiment settings (number of nodes, topology, mixing strategy, non-IID level, etc.) can be adjusted in the configuration file.
 Results are saved automatically and can be used for further analysis or plotting.
 The code is modular and can be extended to test new topologies or mixing methods.
+
+---
+
+## Research Context
+
+This project was developed as part of an academic research effort exploring decentralized machine learning systems.
+It connects ideas from:
+1. Gossip learning
+2. Federated learning
+3. Distributed consensus
+4. Graph theory
+
+The insights from this work highlight how network topology and communication structure jointly affect learning dynamics in server-free systems.
+
+---
+
+## Authors
+
+1. Melissa Laiz
+
+2. Zack Chaffee
+
+3. Krystian Szczepankiewicz
+
+4. Kaung Myat Naing
