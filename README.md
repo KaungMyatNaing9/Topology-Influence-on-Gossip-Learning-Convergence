@@ -25,20 +25,26 @@ The project is research-oriented and designed to support reproducibility and fur
 
 ---
 
-## Repository Structure
+## Running the Code
 
-.
-├── src/
-│   ├── config.py           # configuration dictionary defining experiment parameters
-│   ├── run_experiments.py  # main entry point to run the experiment suite
-│   ├── generate_plots.py   # script to create visualizations from saved results
-│   ├── experiments.py      # function to run gossip experiments and save metrics
-│   ├── training.py         # core gossip training loop
-│   ├── network.py          # GossipNetwork class implementing mixing and evaluation
-│   ├── node.py             # Node class handling local training and evaluation
-│   ├── data.py             # data partitioning utilities (Dirichlet split)
-│   ├── models.py           # SimpleMLP model definition
-│   └── ...                 # other helpers (if added)
-└── results/                # directory where plots are saved (created after running)
-└── experiment_data/        # directory where CSV results are saved (created after running)
+You can run the project in **two ways**, depending on your preference.
+
+---
+
+### Option 1: Run with Jupyter Notebook (Recommended for Exploration)
+
+If you prefer an interactive environment:
+
+1. Download or open `GossipLearning.ipynb`
+2. Launch Jupyter Notebook: Open GossipLearning.ipynb and run the cells sequentially
+
+This option is useful for:
+
+Step-by-step understanding of gossip learning
+
+Debugging and visualization
+
+Interactive analysis of results
+   
+
 
