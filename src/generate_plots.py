@@ -9,328 +9,267 @@ from config import EXPERIMENT_CONFIG, VISUALIZATION_CONFIG
 
 
 def load_all_results(data_dir):
+    """Load all CSV files from experiment_data directory"""
     graph_files = glob.glob(os.path.join(data_dir, "*_graph.csv"))
-    node_files = glob.glob(os.path.join(data_dir, "*_nodes.csv"))
+    rounds_files = glob.glob(os.path.join(data_dir, "*_rounds.csv"))
 
     print(f"Found {len(graph_files)} graph result files")
-    print(f"Found {len(node_files)} node result files")
+    print(f"Found {len(rounds_files)} rounds result files")
 
     df_graph_list = []
-    df_nodes_list = []
+    df_rounds_list = []
 
     for graph_file in graph_files:
         df = pd.read_csv(graph_file)
         df_graph_list.append(df)
 
-    for node_file in node_files:
-        df = pd.read_csv(node_file)
-        df_nodes_list.append(df)
+    for rounds_file in rounds_files:
+        df = pd.read_csv(rounds_file)
+        df_rounds_list.append(df)
 
-    df_graph_all = pd.concat(
-        df_graph_list, ignore_index=True) if df_graph_list else pd.DataFrame()
-    df_nodes_all = pd.concat(
-        df_nodes_list, ignore_index=True) if df_nodes_list else pd.DataFrame()
+    df_graph_all = pd.concat(df_graph_list, ignore_index=True) if df_graph_list else pd.DataFrame()
+    df_rounds_all = pd.concat(df_rounds_list, ignore_index=True) if df_rounds_list else pd.DataFrame()
 
     print(f"\nTotal graph-level records: {len(df_graph_all)}")
-    print(f"Total node-level records: {len(df_nodes_all)}")
+    print(f"Total round-level records: {len(df_rounds_all)}")
 
-    return df_graph_all, df_nodes_all
+    return df_graph_all, df_rounds_all
 
 
-def plot_convergence_by_mixing(df_graph, output_dir):
-    print("\nGenerating convergence comparison plots...")
+def plot_topology_accuracy_over_rounds_by_mixing(df_rounds, output_dir, node_count=30):
+    """Create separate plots for each mixing strategy showing topology comparison over rounds"""
+    print(f"\nGenerating topology accuracy plots for {node_count} nodes...")
 
-    sns.set_theme(style="whitegrid", context="notebook")
+    df = df_rounds[df_rounds['num_nodes'] == node_count].copy()
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    if df.empty:
+        print(f"  WARNING: No data found for {node_count} nodes")
+        return
 
-    sns.boxplot(
-        data=df_graph,
-        x='mixing_strategy',
-        y='convergence_round',
-        hue='topology',
-        ax=axes[0]
-    )
-    axes[0].set_title('Convergence Speed by Mixing Strategy',
-                      fontweight='bold')
-    axes[0].set_xlabel('Mixing Strategy')
-    axes[0].set_ylabel('Convergence Round')
-    axes[0].tick_params(axis='x', rotation=45)
+    sns.set_theme(style="whitegrid", context="paper")
 
-    sns.lineplot(
-        data=df_graph,
-        x='num_nodes',
-        y='convergence_round',
-        hue='mixing_strategy',
-        style='topology',
-        markers=True,
-        dashes=False,
-        ax=axes[1]
-    )
-    axes[1].set_title('Convergence vs Network Size', fontweight='bold')
-    axes[1].set_xlabel('Number of Nodes')
-    axes[1].set_ylabel('Convergence Round')
+    for mixing in df['mixing_strategy'].unique():
+        df_mix = df[df['mixing_strategy'] == mixing]
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        for topology in ['ER', 'WS', 'BA']:
+            df_topo = df_mix[df_mix['topology'] == topology]
+            if not df_topo.empty:
+                ax.plot(df_topo['round'], df_topo['mean_accuracy'],
+                       marker='o', linewidth=2, markersize=4,
+                       label=topology, alpha=0.8)
+
+        ax.set_xlabel('Round', fontsize=12)
+        ax.set_ylabel('Mean Accuracy (%)', fontsize=12)
+        ax.set_title(f'Topology Comparison - {mixing.replace("_", " ").title()}\n({node_count} nodes)',
+                    fontsize=14, fontweight='bold')
+        ax.legend(title='Topology', fontsize=10)
+        ax.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+        output_file = os.path.join(output_dir, f'accuracy_over_rounds_{mixing}_{node_count}nodes.pdf')
+        plt.savefig(output_file, format='pdf', dpi=VISUALIZATION_CONFIG['figure_dpi'], bbox_inches='tight')
+        plt.close()
+        print(f"  Saved: {output_file}")
+
+
+def plot_mixing_strategy_comparison(df_rounds, output_dir, node_count=30):
+    """Compare the two mixing strategies across all topologies"""
+    print(f"\nGenerating mixing strategy comparison for {node_count} nodes...")
+
+    df = df_rounds[df_rounds['num_nodes'] == node_count].copy()
+
+    if df.empty:
+        print(f"  WARNING: No data found for {node_count} nodes")
+        return
+
+    sns.set_theme(style="whitegrid", context="paper")
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    for mixing in df['mixing_strategy'].unique():
+        df_mix = df[df['mixing_strategy'] == mixing]
+        avg_by_round = df_mix.groupby('round')['mean_accuracy'].mean().reset_index()
+        ax.plot(avg_by_round['round'], avg_by_round['mean_accuracy'],
+               marker='o', linewidth=2.5, markersize=5,
+               label=mixing.replace('_', ' ').title(), alpha=0.8)
+
+    ax.set_xlabel('Round', fontsize=12)
+    ax.set_ylabel('Mean Accuracy (%)', fontsize=12)
+    ax.set_title(f'Mixing Strategy Comparison\n({node_count} nodes, averaged across topologies)',
+                fontsize=14, fontweight='bold')
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    output_file = os.path.join(output_dir, 'convergence_comparison.pdf')
-    plt.savefig(output_file, format='pdf',
-                dpi=VISUALIZATION_CONFIG['figure_dpi'])
+    output_file = os.path.join(output_dir, f'mixing_comparison_{node_count}nodes.pdf')
+    plt.savefig(output_file, format='pdf', dpi=VISUALIZATION_CONFIG['figure_dpi'], bbox_inches='tight')
+    plt.close()
+    print(f"  Saved: {output_file}")
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    colors = {'metropolis_hastings': 'C0', 'uniform': 'C1'}
+    markers = {'ER': 'o', 'WS': 's', 'BA': '^'}
+    linestyles = {'metropolis_hastings': '-', 'uniform': '--'}
+
+    for mixing in df['mixing_strategy'].unique():
+        for topology in ['ER', 'WS', 'BA']:
+            df_subset = df[(df['mixing_strategy'] == mixing) & (df['topology'] == topology)]
+            if not df_subset.empty:
+                label = f"{topology} - {mixing.replace('_', ' ').title()}"
+                ax.plot(df_subset['round'], df_subset['mean_accuracy'],
+                       marker=markers[topology], color=colors.get(mixing, 'gray'),
+                       linestyle=linestyles.get(mixing, '-'),
+                       linewidth=2, markersize=4, label=label, alpha=0.7)
+
+    ax.set_xlabel('Round', fontsize=12)
+    ax.set_ylabel('Mean Accuracy (%)', fontsize=12)
+    ax.set_title(f'Mixing Strategy × Topology Comparison\n({node_count} nodes)',
+                fontsize=14, fontweight='bold')
+    ax.legend(fontsize=9, ncol=2)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    output_file = os.path.join(output_dir, f'mixing_topology_detailed_{node_count}nodes.pdf')
+    plt.savefig(output_file, format='pdf', dpi=VISUALIZATION_CONFIG['figure_dpi'], bbox_inches='tight')
     plt.close()
     print(f"  Saved: {output_file}")
 
 
-def plot_accuracy_by_mixing(df_graph, output_dir):
-    print("\nGenerating accuracy comparison plots...")
+def plot_convergence_speed_comparison(df_graph, output_dir, node_count=30):
+    """Compare convergence speed across topologies and mixing strategies"""
+    print(f"\nGenerating convergence speed comparison for {node_count} nodes...")
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    df = df_graph[df_graph['num_nodes'] == node_count].copy()
 
-    sns.violinplot(
-        data=df_graph,
-        x='mixing_strategy',
-        y='final_mean_accuracy',
-        hue='topology',
-        split=False,
-        ax=axes[0]
-    )
-    axes[0].set_title('Final Accuracy by Mixing Strategy', fontweight='bold')
-    axes[0].set_xlabel('Mixing Strategy')
-    axes[0].set_ylabel('Final Mean Accuracy (%)')
-    axes[0].tick_params(axis='x', rotation=45)
+    if df.empty:
+        print(f"  WARNING: No data found for {node_count} nodes")
+        return
 
-    sns.lineplot(
-        data=df_graph,
-        x='num_nodes',
-        y='final_mean_accuracy',
-        hue='mixing_strategy',
-        style='topology',
-        markers=True,
-        dashes=False,
-        ax=axes[1]
-    )
-    axes[1].set_title('Accuracy vs Network Size', fontweight='bold')
-    axes[1].set_xlabel('Number of Nodes')
-    axes[1].set_ylabel('Final Mean Accuracy (%)')
+    sns.set_theme(style="whitegrid", context="paper")
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    df_pivot = df.pivot_table(values='convergence_round',
+                               index='topology',
+                               columns='mixing_strategy')
+
+    df_pivot.plot(kind='bar', ax=ax, width=0.7, alpha=0.8)
+
+    ax.set_xlabel('Topology', fontsize=12)
+    ax.set_ylabel('Convergence Round', fontsize=12)
+    ax.set_title(f'Convergence Speed Comparison\n({node_count} nodes)',
+                fontsize=14, fontweight='bold')
+    ax.legend(title='Mixing Strategy', labels=[s.replace('_', ' ').title() for s in df_pivot.columns])
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+    ax.grid(True, alpha=0.3, axis='y')
 
     plt.tight_layout()
-    output_file = os.path.join(output_dir, 'accuracy_comparison.pdf')
-    plt.savefig(output_file, format='pdf',
-                dpi=VISUALIZATION_CONFIG['figure_dpi'])
+    output_file = os.path.join(output_dir, f'convergence_speed_{node_count}nodes.pdf')
+    plt.savefig(output_file, format='pdf', dpi=VISUALIZATION_CONFIG['figure_dpi'], bbox_inches='tight')
     plt.close()
     print(f"  Saved: {output_file}")
 
 
-def plot_k_value_analysis(df_graph, output_dir):
-    print("\nGenerating k-value analysis plots...")
+def plot_final_accuracy_comparison(df_graph, output_dir, node_count=30):
+    """Compare final accuracy across topologies and mixing strategies"""
+    print(f"\nGenerating final accuracy comparison for {node_count} nodes...")
 
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    df = df_graph[df_graph['num_nodes'] == node_count].copy()
 
-    sns.lineplot(
-        data=df_graph,
-        x='k_target',
-        y='convergence_round',
-        hue='mixing_strategy',
-        style='topology',
-        markers=True,
-        ax=axes[0, 0]
-    )
-    axes[0, 0].set_title(
-        'Convergence vs K (Average Degree)', fontweight='bold')
-    axes[0, 0].set_xlabel('K (Target Average Degree)')
-    axes[0, 0].set_ylabel('Convergence Round')
+    if df.empty:
+        print(f"  WARNING: No data found for {node_count} nodes")
+        return
 
-    sns.lineplot(
-        data=df_graph,
-        x='k_target',
-        y='final_mean_accuracy',
-        hue='mixing_strategy',
-        style='topology',
-        markers=True,
-        ax=axes[0, 1]
-    )
-    axes[0, 1].set_title('Accuracy vs K (Average Degree)', fontweight='bold')
-    axes[0, 1].set_xlabel('K (Target Average Degree)')
-    axes[0, 1].set_ylabel('Final Mean Accuracy (%)')
+    sns.set_theme(style="whitegrid", context="paper")
 
-    pivot_conv = df_graph.groupby(['k_target', 'mixing_strategy'])[
-        'convergence_round'].mean().unstack()
-    sns.heatmap(pivot_conv, annot=True, fmt='.1f',
-                cmap='YlOrRd', ax=axes[1, 0])
-    axes[1, 0].set_title(
-        'Avg Convergence Round by K and Mixing', fontweight='bold')
-    axes[1, 0].set_xlabel('Mixing Strategy')
-    axes[1, 0].set_ylabel('K Value')
+    fig, ax = plt.subplots(figsize=(8, 6))
 
-    pivot_acc = df_graph.groupby(['k_target', 'mixing_strategy'])[
-        'final_mean_accuracy'].mean().unstack()
-    sns.heatmap(pivot_acc, annot=True, fmt='.2f', cmap='YlGn', ax=axes[1, 1])
-    axes[1, 1].set_title(
-        'Avg Final Accuracy by K and Mixing', fontweight='bold')
-    axes[1, 1].set_xlabel('Mixing Strategy')
-    axes[1, 1].set_ylabel('K Value')
+    df_pivot = df.pivot_table(values='final_mean_accuracy',
+                               index='topology',
+                               columns='mixing_strategy')
+
+    df_pivot.plot(kind='bar', ax=ax, width=0.7, alpha=0.8)
+
+    ax.set_xlabel('Topology', fontsize=12)
+    ax.set_ylabel('Final Mean Accuracy (%)', fontsize=12)
+    ax.set_title(f'Final Accuracy Comparison\n({node_count} nodes)',
+                fontsize=14, fontweight='bold')
+    ax.legend(title='Mixing Strategy', labels=[s.replace('_', ' ').title() for s in df_pivot.columns])
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+    ax.grid(True, alpha=0.3, axis='y')
 
     plt.tight_layout()
-    output_file = os.path.join(output_dir, 'k_value_analysis.pdf')
-    plt.savefig(output_file, format='pdf',
-                dpi=VISUALIZATION_CONFIG['figure_dpi'])
+    output_file = os.path.join(output_dir, f'final_accuracy_{node_count}nodes.pdf')
+    plt.savefig(output_file, format='pdf', dpi=VISUALIZATION_CONFIG['figure_dpi'], bbox_inches='tight')
     plt.close()
     print(f"  Saved: {output_file}")
 
 
-def plot_topology_comparison(df_graph, output_dir):
-    print("\nGenerating topology comparison plots...")
+def plot_accuracy_dispersion(df_rounds, output_dir, node_count=30):
+    """Show how accuracy variance evolves over rounds"""
+    print(f"\nGenerating accuracy dispersion plot for {node_count} nodes...")
 
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    df = df_rounds[df_rounds['num_nodes'] == node_count].copy()
 
-    sns.boxplot(
-        data=df_graph,
-        x='topology',
-        y='convergence_round',
-        hue='mixing_strategy',
-        ax=axes[0, 0]
-    )
-    axes[0, 0].set_title('Convergence by Topology', fontweight='bold')
-    axes[0, 0].set_xlabel('Topology')
-    axes[0, 0].set_ylabel('Convergence Round')
+    if df.empty:
+        print(f"  WARNING: No data found for {node_count} nodes")
+        return
 
-    sns.boxplot(
-        data=df_graph,
-        x='topology',
-        y='final_mean_accuracy',
-        hue='mixing_strategy',
-        ax=axes[0, 1]
-    )
-    axes[0, 1].set_title('Accuracy by Topology', fontweight='bold')
-    axes[0, 1].set_xlabel('Topology')
-    axes[0, 1].set_ylabel('Final Mean Accuracy (%)')
+    sns.set_theme(style="whitegrid", context="paper")
 
-    sns.violinplot(
-        data=df_graph,
-        x='topology',
-        y='final_std_accuracy',
-        hue='mixing_strategy',
-        ax=axes[1, 0]
-    )
-    axes[1, 0].set_title('Accuracy Dispersion by Topology', fontweight='bold')
-    axes[1, 0].set_xlabel('Topology')
-    axes[1, 0].set_ylabel('Std Accuracy (%)')
+    fig, ax = plt.subplots(figsize=(8, 6))
 
-    conv_rate = df_graph.groupby(['topology', 'mixing_strategy'])[
-        'converged'].mean().unstack() * 100
-    conv_rate.plot(kind='bar', ax=axes[1, 1])
-    axes[1, 1].set_title('Convergence Rate by Topology', fontweight='bold')
-    axes[1, 1].set_xlabel('Topology')
-    axes[1, 1].set_ylabel('Convergence Rate (%)')
-    axes[1, 1].legend(title='Mixing Strategy')
-    axes[1, 1].tick_params(axis='x', rotation=0)
+    colors = {'metropolis_hastings': 'C0', 'uniform': 'C1'}
+    markers = {'ER': 'o', 'WS': 's', 'BA': '^'}
+
+    for mixing in df['mixing_strategy'].unique():
+        df_mix = df[df['mixing_strategy'] == mixing]
+        avg_std_by_round = df_mix.groupby('round')['std_accuracy'].mean().reset_index()
+        ax.plot(avg_std_by_round['round'], avg_std_by_round['std_accuracy'],
+               marker='o', color=colors.get(mixing, 'gray'),
+               linewidth=2.5, markersize=5,
+               label=mixing.replace('_', ' ').title(), alpha=0.8)
+
+    ax.set_xlabel('Round', fontsize=12)
+    ax.set_ylabel('Std. Deviation of Accuracy (%)', fontsize=12)
+    ax.set_title(f'Accuracy Dispersion Over Rounds\n({node_count} nodes, averaged across topologies)',
+                fontsize=14, fontweight='bold')
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    output_file = os.path.join(output_dir, 'topology_comparison.pdf')
-    plt.savefig(output_file, format='pdf',
-                dpi=VISUALIZATION_CONFIG['figure_dpi'])
+    output_file = os.path.join(output_dir, f'accuracy_dispersion_{node_count}nodes.pdf')
+    plt.savefig(output_file, format='pdf', dpi=VISUALIZATION_CONFIG['figure_dpi'], bbox_inches='tight')
     plt.close()
     print(f"  Saved: {output_file}")
 
 
-def plot_scalability_analysis(df_graph, output_dir):
-    print("\nGenerating scalability analysis plots...")
+def generate_summary_table(df_graph, output_dir, node_count=30):
+    """Generate a summary statistics table"""
+    print(f"\nGenerating summary statistics table for {node_count} nodes...")
 
-    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    df = df_graph[df_graph['num_nodes'] == node_count].copy()
 
-    for mixing in df_graph['mixing_strategy'].unique():
-        subset = df_graph[df_graph['mixing_strategy'] == mixing]
-        sns.lineplot(
-            data=subset,
-            x='num_nodes',
-            y='convergence_round',
-            hue='topology',
-            markers=True,
-            ax=axes[0, 0],
-            label=f"{mixing}"
-        )
-    axes[0, 0].set_title(
-        'Scalability: Convergence vs Network Size', fontweight='bold')
-    axes[0, 0].set_xlabel('Number of Nodes')
-    axes[0, 0].set_ylabel('Convergence Round')
+    if df.empty:
+        print(f"  WARNING: No data found for {node_count} nodes")
+        return
 
-    sns.lineplot(
-        data=df_graph,
-        x='num_nodes',
-        y='final_mean_accuracy',
-        hue='mixing_strategy',
-        style='topology',
-        markers=True,
-        ax=axes[0, 1]
-    )
-    axes[0, 1].set_title(
-        'Scalability: Accuracy vs Network Size', fontweight='bold')
-    axes[0, 1].set_xlabel('Number of Nodes')
-    axes[0, 1].set_ylabel('Final Mean Accuracy (%)')
-
-    sns.lineplot(
-        data=df_graph,
-        x='num_nodes',
-        y='final_std_accuracy',
-        hue='mixing_strategy',
-        style='topology',
-        markers=True,
-        ax=axes[1, 0]
-    )
-    axes[1, 0].set_title(
-        'Scalability: Dispersion vs Network Size', fontweight='bold')
-    axes[1, 0].set_xlabel('Number of Nodes')
-    axes[1, 0].set_ylabel('Std Accuracy (%)')
-
-    summary = df_graph.groupby(['num_nodes', 'mixing_strategy']).agg({
+    summary = df.groupby(['topology', 'mixing_strategy']).agg({
         'convergence_round': 'mean',
-        'final_mean_accuracy': 'mean'
-    }).reset_index()
+        'final_mean_accuracy': 'mean',
+        'final_std_accuracy': 'mean'
+    }).round(2)
 
-    summary['efficiency'] = summary['final_mean_accuracy'] / \
-        (summary['convergence_round'] + 1)
+    summary.columns = ['Convergence Round', 'Final Mean Accuracy (%)', 'Final Std Accuracy (%)']
 
-    sns.lineplot(
-        data=summary,
-        x='num_nodes',
-        y='efficiency',
-        hue='mixing_strategy',
-        markers=True,
-        ax=axes[1, 1]
-    )
-    axes[1, 1].set_title(
-        'Efficiency: Accuracy / Convergence Time', fontweight='bold')
-    axes[1, 1].set_xlabel('Number of Nodes')
-    axes[1, 1].set_ylabel('Efficiency Score')
-
-    plt.tight_layout()
-    output_file = os.path.join(output_dir, 'scalability_analysis.pdf')
-    plt.savefig(output_file, format='pdf',
-                dpi=VISUALIZATION_CONFIG['figure_dpi'])
-    plt.close()
+    output_file = os.path.join(output_dir, f'summary_table_{node_count}nodes.csv')
+    summary.to_csv(output_file)
     print(f"  Saved: {output_file}")
-
-
-def generate_summary_statistics(df_graph, output_dir):
-    print("\nGenerating summary statistics...")
-
-    summary_mixing = df_graph.groupby('mixing_strategy').agg({
-        'convergence_round': ['mean', 'std', 'min', 'max'],
-        'final_mean_accuracy': ['mean', 'std', 'min', 'max'],
-        'converged': 'mean'
-    }).round(2)
-
-    summary_file = os.path.join(output_dir, 'summary_by_mixing.csv')
-    summary_mixing.to_csv(summary_file)
-    print(f"  Saved: {summary_file}")
-
-    summary_topology = df_graph.groupby('topology').agg({
-        'convergence_round': ['mean', 'std'],
-        'final_mean_accuracy': ['mean', 'std'],
-        'converged': 'mean'
-    }).round(2)
-
-    summary_file = os.path.join(output_dir, 'summary_by_topology.csv')
-    summary_topology.to_csv(summary_file)
-    print(f"  Saved: {summary_file}")
+    print("\nSummary Statistics:")
+    print(summary)
 
 
 def main():
@@ -340,23 +279,30 @@ def main():
     os.makedirs(results_dir, exist_ok=True)
 
     print("=" * 80)
-    print("GENERATING VISUALIZATIONS FROM EXPERIMENT RESULTS")
+    print("GENERATING LATEX-READY VISUALIZATIONS FROM EXPERIMENT RESULTS")
     print("=" * 80)
 
-    df_graph, df_nodes = load_all_results(data_dir)
+    df_graph, df_rounds = load_all_results(data_dir)
 
-    if df_graph.empty:
+    if df_graph.empty or df_rounds.empty:
         print("\nERROR: No experiment results found!")
-        print(f"Please run experiments first: python src/run_experiments.py")
+        print(f"Please check: {data_dir}/")
         return
 
-    plot_convergence_by_mixing(df_graph, results_dir)
-    plot_accuracy_by_mixing(df_graph, results_dir)
-    plot_k_value_analysis(df_graph, results_dir)
-    plot_topology_comparison(df_graph, results_dir)
-    plot_scalability_analysis(df_graph, results_dir)
+    node_counts = sorted(df_graph['num_nodes'].unique())
+    print(f"\nNode counts found in data: {node_counts}")
 
-    generate_summary_statistics(df_graph, results_dir)
+    for node_count in node_counts:
+        print(f"\n{'='*80}")
+        print(f"Generating plots for {node_count} nodes")
+        print(f"{'='*80}")
+
+        plot_topology_accuracy_over_rounds_by_mixing(df_rounds, results_dir, node_count)
+        plot_mixing_strategy_comparison(df_rounds, results_dir, node_count)
+        plot_convergence_speed_comparison(df_graph, results_dir, node_count)
+        plot_final_accuracy_comparison(df_graph, results_dir, node_count)
+        plot_accuracy_dispersion(df_rounds, results_dir, node_count)
+        generate_summary_table(df_graph, results_dir, node_count)
 
     print("\n" + "=" * 80)
     print("VISUALIZATION COMPLETE")

@@ -1,20 +1,18 @@
 EXPERIMENT_CONFIG = {
-    'node_counts': [30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200],
+    'node_counts': [30, 50, 60, 80, 100],
 
-    'k_values': [2, 4, 6, 8, 10],
+    'k_values': [4],
 
     'mixing_strategies': [
         'metropolis_hastings',
         'uniform',
-        'degree_normalized',
-        'laplacian'
     ],
 
     'topologies': ['ER', 'WS', 'BA'],
 
-    'num_runs': 3,
+    'num_runs': 1,
 
-    'seeds': [42, 123, 456],
+    'seeds': [42],
 
     'num_rounds': 40,
     'local_epochs': 2,

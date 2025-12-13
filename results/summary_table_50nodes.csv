@@ -1,0 +1,2 @@
+topology,mixing_strategy,Convergence Round,Final Mean Accuracy (%),Final Std Accuracy (%)
+ER,metropolis_hastings,27.0,73.11,2.94

@@ -107,29 +107,16 @@ def main():
                 k_values=k_values,
                 mixing_strategy=mixing_strategy,
                 device=device,
+                data_dir=data_dir,
             )
 
-            filename_base = f"nodes{num_nodes}_mixing{mixing_strategy}"
-            graph_csv = os.path.join(data_dir, f"{filename_base}_graph.csv")
-            nodes_csv = os.path.join(data_dir, f"{filename_base}_nodes.csv")
-            rounds_csv = os.path.join(data_dir, f"{filename_base}_rounds.csv")
-            node_rounds_csv = os.path.join(data_dir, f"{filename_base}_node_rounds.csv")
-            distribution_csv = os.path.join(data_dir, f"{filename_base}_distribution.csv")
-
-            df_graph.to_csv(graph_csv, index=False)
-            df_nodes.to_csv(nodes_csv, index=False)
-            df_rounds.to_csv(rounds_csv, index=False)
-            df_node_rounds.to_csv(node_rounds_csv, index=False)
-            df_distribution.to_csv(distribution_csv, index=False)
-
             exp_duration = time.time() - exp_start_time
-            print(f"\nSaved results:")
-            print(f"  Graph-level: {graph_csv}")
-            print(f"  Node-level: {nodes_csv}")
-            print(f"  Round-level: {rounds_csv}")
-            print(f"  Node-Round-level: {node_rounds_csv}")
-            print(f"  Distribution: {distribution_csv}")
-            print(f"  Duration: {exp_duration/60:.2f} minutes")
+            filename_base = f"nodes{num_nodes}_mixing{mixing_strategy}"
+            print(f"\n{'='*80}")
+            print(f"BATCH COMPLETE: {filename_base}")
+            print(f"Duration: {exp_duration/60:.2f} minutes")
+            print(f"All runs saved incrementally to: {data_dir}/")
+            print(f"{'='*80}")
 
     total_duration = (datetime.now() - experiment_start_time).total_seconds()
     print("\n" + "=" * 80)

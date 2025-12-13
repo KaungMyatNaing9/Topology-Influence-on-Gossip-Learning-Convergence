@@ -1,0 +1,4 @@
+topology,mixing_strategy,num_nodes,seed,k_target,p,k_ws,m,num_edges,avg_degree,avg_clustering,diameter,avg_path_length,converged,convergence_round,final_mean_accuracy,final_std_accuracy
+ER,metropolis_hastings,30,42,4,0.13793103448275862,,,57,3.8,0.17261904761904762,5,2.593103448275862,True,18,75.65666666666668,2.232011549153712
+WS,metropolis_hastings,30,42,4,0.3,4,,60,4.0,0.3222222222222222,6,2.7724137931034485,True,16,76.04633333333335,1.556829006524337
+BA,metropolis_hastings,30,42,4,,,2,56,3.7333333333333334,0.19912698412698412,5,2.533333333333333,True,20,75.32999999999998,2.42320036315613

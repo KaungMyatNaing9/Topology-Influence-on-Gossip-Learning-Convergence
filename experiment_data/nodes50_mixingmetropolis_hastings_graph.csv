@@ -1,0 +1,2 @@
+topology,mixing_strategy,num_nodes,seed,k_target,p,k_ws,m,num_edges,avg_degree,avg_clustering,diameter,avg_path_length,converged,convergence_round,final_mean_accuracy,final_std_accuracy
+ER,metropolis_hastings,50,42,4,0.08163265306122448,,,102,4.08,0.08476190476190476,6,2.9118367346938774,True,27,73.1072,2.9424187601359524

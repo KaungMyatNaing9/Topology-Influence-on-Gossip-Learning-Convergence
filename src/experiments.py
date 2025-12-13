@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 import networkx as nx
+import os
 
 from data import partition_data
 from models import SimpleMLP
@@ -23,6 +24,7 @@ def run_experiments_matched_degree(
     k_values=(2, 4, 8),
     mixing_strategy='metropolis_hastings',
     device=None,
+    data_dir='experiment_data',
 ):
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -33,11 +35,21 @@ def run_experiments_matched_degree(
     node_datasets, distribution_info = partition_data(
         train_dataset, num_nodes, alpha=alpha)
 
+    filename_base = f"nodes{num_nodes}_mixing{mixing_strategy}"
+    graph_csv = os.path.join(data_dir, f"{filename_base}_graph.csv")
+    nodes_csv = os.path.join(data_dir, f"{filename_base}_nodes.csv")
+    rounds_csv = os.path.join(data_dir, f"{filename_base}_rounds.csv")
+    node_rounds_csv = os.path.join(data_dir, f"{filename_base}_node_rounds.csv")
+    distribution_csv = os.path.join(data_dir, f"{filename_base}_distribution.csv")
+
     graph_rows = []
     node_rows = []
     round_rows = []
     node_round_rows = []
     distribution_rows = []
+
+    run_counter = 0
+    total_runs = len(k_values) * 3 * len(seeds)  
 
     for k_target in k_values:
         print(f"\n===== Target average degree <k> = {k_target} =====")
@@ -168,6 +180,24 @@ def run_experiments_matched_degree(
                             "accuracy": node_acc,
                             "degree": node_metrics[node_id]["degree"],
                         })
+
+                run_counter += 1
+                print(f"\n>>> SAVING RUN {run_counter}/{total_runs} <<<")
+
+                run_graph = pd.DataFrame([graph_rows[-1]])
+                run_nodes = pd.DataFrame(node_rows[-num_nodes:])
+                run_rounds = pd.DataFrame(round_rows[-len(metrics['rounds']):])
+                run_node_rounds = pd.DataFrame(node_round_rows[-(len(metrics['rounds']) * num_nodes):])
+                run_distribution = pd.DataFrame(distribution_rows[-num_nodes:])
+
+                file_exists = os.path.exists(graph_csv)
+                run_graph.to_csv(graph_csv, mode='a', header=not file_exists, index=False)
+                run_nodes.to_csv(nodes_csv, mode='a', header=not os.path.exists(nodes_csv), index=False)
+                run_rounds.to_csv(rounds_csv, mode='a', header=not os.path.exists(rounds_csv), index=False)
+                run_node_rounds.to_csv(node_rounds_csv, mode='a', header=not os.path.exists(node_rounds_csv), index=False)
+                run_distribution.to_csv(distribution_csv, mode='a', header=not os.path.exists(distribution_csv), index=False)
+
+                print(f"Saved to {data_dir}/")
 
     df_graph = pd.DataFrame(graph_rows)
     df_nodes = pd.DataFrame(node_rows)
