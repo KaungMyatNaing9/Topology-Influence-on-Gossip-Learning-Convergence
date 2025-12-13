@@ -69,3 +69,12 @@ This will:
 2. Train gossip learning models
 3. Save experimental results to CSV files
 4. Enable large-scale and repeatable experiments
+
+
+---
+
+## Notes
+
+Experiment settings (number of nodes, topology, mixing strategy, non-IID level, etc.) can be adjusted in the configuration file.
+Results are saved automatically and can be used for further analysis or plotting.
+The code is modular and can be extended to test new topologies or mixing methods.
