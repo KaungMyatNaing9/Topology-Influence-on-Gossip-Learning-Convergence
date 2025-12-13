@@ -103,3 +103,5 @@ The insights from this work highlight how network topology and communication str
 3. Krystian Szczepankiewicz
 
 4. Kaung Myat Naing
+
+All authors contributed to the design, implementation, experimentation, and writing of the project.
